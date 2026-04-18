@@ -27,6 +27,9 @@ app-template:
             # case the secret's ANTHROPIC_API_KEY must be an Anthropic key
             # instead of an OpenRouter one.
             ANTHROPIC_BASE_URL: "https://openrouter.ai/api"
+            # Wrapper's default is 10 chat completions/min per IP — fine for
+            # a shared server, too aggressive for single-user self-hosted.
+            RATE_LIMIT_ENABLED: "false"
           envFrom:
             - secretRef:
                 name: claude-code-openai-wrapper-secrets
