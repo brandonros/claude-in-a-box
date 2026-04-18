@@ -3,4 +3,4 @@
 	url = https://github.com/open-webui/open-webui.git
 [submodule "claude-code-openai-wrapper"]
 	path = claude-code-openai-wrapper
-	url = https://github.com/RichardAtCT/claude-code-openai-wrapper.git
+	url = https://github.com/brandonros/claude-code-openai-wrapper.git

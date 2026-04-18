@@ -5,11 +5,13 @@ app-template:
       replicas: 1
       containers:
         app:
-          # Built and published by .github/workflows/docker.yml in this repo.
-          # Override `tag` to pin a specific wrapper submodule SHA
-          # (e.g. `wrapper-abc1234`) instead of the floating `latest`.
+          # Built and published by the docker.yml workflow in the fork
+          # at https://github.com/brandonros/claude-code-openai-wrapper.
+          # Override `tag` to pin a specific upstream commit SHA (e.g. the
+          # 12-char `sha-abc1234...` produced by docker/metadata-action)
+          # instead of the floating `latest`.
           image:
-            repository: ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper
+            repository: ghcr.io/brandonros/claude-code-openai-wrapper
             tag: latest
             pullPolicy: IfNotPresent
           # Upstream Dockerfile's CMD runs uvicorn with --reload for dev; strip

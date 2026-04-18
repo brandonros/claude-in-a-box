@@ -31,7 +31,7 @@ Open WebUI points at the wrapper as if it were OpenAI. The wrapper translates Op
 | Path | Upstream | Role |
 | --- | --- | --- |
 | [`open-webui/`](open-webui/) | [open-webui/open-webui](https://github.com/open-webui/open-webui) | ChatGPT-style web frontend + backend (accounts, history, RAG, tools). |
-| [`claude-code-openai-wrapper/`](claude-code-openai-wrapper/) | [RichardAtCT/claude-code-openai-wrapper](https://github.com/RichardAtCT/claude-code-openai-wrapper) | FastAPI server exposing `/v1/chat/completions` and `/v1/messages` on top of the Claude Agent SDK. |
+| [`claude-code-openai-wrapper/`](claude-code-openai-wrapper/) | [brandonros/claude-code-openai-wrapper](https://github.com/brandonros/claude-code-openai-wrapper) (fork of [RichardAtCT/...](https://github.com/RichardAtCT/claude-code-openai-wrapper)) | FastAPI server exposing `/v1/chat/completions` and `/v1/messages` on top of the Claude Agent SDK. The fork owns the container-image publish workflow. |
 
 Both are tracked as git submodules — see [`.gitmodules`](.gitmodules).
 
@@ -66,7 +66,7 @@ helm upgrade --install claude-code-openai-wrapper deploy/helm/claude-code-openai
 helm upgrade --install open-webui                  deploy/helm/open-webui                  -n claude-in-a-box
 ```
 
-See [`deploy/helm/README.md`](deploy/helm/README.md) for ingress, mounting `CLAUDE.md` / skills / `.mcp.json` from ConfigMaps, and upgrade notes. The wrapper image is published to `ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper` by [`.github/workflows/publish-claude-code-openai-wrapper.yml`](.github/workflows/publish-claude-code-openai-wrapper.yml) on every push to `master`; forks should update the image repo in the chart values to their own GHCR namespace.
+See [`deploy/helm/README.md`](deploy/helm/README.md) for ingress, mounting `CLAUDE.md` / skills / `.mcp.json` from ConfigMaps, and upgrade notes. The wrapper image is built and published to `ghcr.io/brandonros/claude-code-openai-wrapper` by the [`docker.yml`](https://github.com/brandonros/claude-code-openai-wrapper/blob/main/.github/workflows/docker.yml) workflow in the [wrapper fork](https://github.com/brandonros/claude-code-openai-wrapper). This repo only contains orchestration (Helm, docs); if you want local patches to the wrapper, commit them in the fork and bump the submodule pointer here.
 
 ### Local Docker
 
@@ -97,7 +97,7 @@ See each submodule's README for the full list.
 ## Roadmap
 
 - [x] Helm charts for both services under [`deploy/helm/`](deploy/helm/) (bjw-s `app-template` based).
-- [x] Wrapper container image published to GHCR via [`.github/workflows/publish-claude-code-openai-wrapper.yml`](.github/workflows/publish-claude-code-openai-wrapper.yml).
+- [x] Wrapper container image published to GHCR by the `docker.yml` workflow in the [wrapper fork](https://github.com/brandonros/claude-code-openai-wrapper).
 - [ ] Top-level `docker-compose.yml` that brings up both services on one network.
 - [ ] `.env.example` covering the common auth paths.
 - [ ] Preconfigured Open WebUI connection so the wrapper is wired in on first boot.
