@@ -12,7 +12,7 @@ They're deliberately decoupled: install either on its own, point the UI at any O
 - Kubernetes 1.27+
 - Helm 3.13+
 - A `StorageClass` that supports `ReadWriteOnce` (Open WebUI uses a PVC for SQLite)
-- Access to the wrapper image at `ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper` — published by [`publish-wrapper-image.yml`](../../.github/workflows/publish-wrapper-image.yml) on every push to `master`. If your fork is elsewhere, override `app-template.controllers.claude-code-openai-wrapper.containers.app.image.repository` in a values file.
+- Access to the wrapper image at `ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper` — published by [`publish-claude-code-openai-wrapper.yml`](../../.github/workflows/publish-claude-code-openai-wrapper.yml) on every push to `master`. If your fork is elsewhere, override `app-template.controllers.claude-code-openai-wrapper.containers.app.image.repository` in a values file.
 
 > **Note:** the wrapper chart overrides the upstream Dockerfile's `CMD` to drop `--reload` (upstream ships a dev-mode CMD). If you override `image`, you may want to keep the `command:` override in [`claude-code-openai-wrapper/values.yaml`](claude-code-openai-wrapper/values.yaml) as-is.
 

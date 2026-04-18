@@ -66,7 +66,7 @@ helm upgrade --install claude-code-openai-wrapper deploy/helm/claude-code-openai
 helm upgrade --install open-webui                  deploy/helm/open-webui                  -n claude-in-a-box
 ```
 
-See [`deploy/helm/README.md`](deploy/helm/README.md) for ingress, mounting `CLAUDE.md` / skills / `.mcp.json` from ConfigMaps, and upgrade notes. The wrapper image is published to `ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper` by [`.github/workflows/publish-wrapper-image.yml`](.github/workflows/publish-wrapper-image.yml) on every push to `master`; forks should update the image repo in the chart values to their own GHCR namespace.
+See [`deploy/helm/README.md`](deploy/helm/README.md) for ingress, mounting `CLAUDE.md` / skills / `.mcp.json` from ConfigMaps, and upgrade notes. The wrapper image is published to `ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper` by [`.github/workflows/publish-claude-code-openai-wrapper.yml`](.github/workflows/publish-claude-code-openai-wrapper.yml) on every push to `master`; forks should update the image repo in the chart values to their own GHCR namespace.
 
 ### Local Docker
 
@@ -97,7 +97,7 @@ See each submodule's README for the full list.
 ## Roadmap
 
 - [x] Helm charts for both services under [`deploy/helm/`](deploy/helm/) (bjw-s `app-template` based).
-- [x] Wrapper container image published to GHCR via [`.github/workflows/publish-wrapper-image.yml`](.github/workflows/publish-wrapper-image.yml).
+- [x] Wrapper container image published to GHCR via [`.github/workflows/publish-claude-code-openai-wrapper.yml`](.github/workflows/publish-claude-code-openai-wrapper.yml).
 - [ ] Top-level `docker-compose.yml` that brings up both services on one network.
 - [ ] `.env.example` covering the common auth paths.
 - [ ] Preconfigured Open WebUI connection so the wrapper is wired in on first boot.

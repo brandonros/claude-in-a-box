@@ -1,4 +1,4 @@
-name: Build and push wrapper image
+name: Publish claude-code-openai-wrapper image to GHCR
 
 on:
   workflow_dispatch:
