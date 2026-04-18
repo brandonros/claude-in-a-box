@@ -1,108 +1,51 @@
 # Helm deployment
 
-Two umbrella charts, each wrapping [bjw-s `app-template` v4.6.2](https://bjw-s-labs.github.io/helm-charts/docs/app-template/) as a subchart so values stay in-repo and the chart version is pinned:
+Two umbrella charts, each wrapping [bjw-s `app-template` v4.6.2](https://bjw-s-labs.github.io/helm-charts/docs/app-template/) as a pinned subchart:
 
 - [`open-webui/`](open-webui/) — the chat frontend.
-- [`claude-code-openai-wrapper/`](claude-code-openai-wrapper/) — the OpenAI-compatible shim over the Claude Agent SDK.
-
-They're deliberately decoupled: install either on its own, point the UI at any OpenAI-compatible endpoint you want, or swap the wrapper out for [LiteLLM](https://github.com/BerriAI/litellm) later without touching the UI chart.
+- [`claude-code-openai-wrapper/`](claude-code-openai-wrapper/) — Claude Code behind an OpenAI-compatible API.
 
 ## Prerequisites
 
-- Kubernetes 1.27+
-- Helm 3.13+
-- A `StorageClass` that supports `ReadWriteOnce` (Open WebUI uses a PVC for SQLite)
-- Access to the wrapper image at `ghcr.io/brandonros/claude-code-openai-wrapper` — built and published by the [`docker.yml`](https://github.com/brandonros/claude-code-openai-wrapper/blob/main/.github/workflows/docker.yml) workflow in the [wrapper fork](https://github.com/brandonros/claude-code-openai-wrapper) on every push to `main`. If your fork is elsewhere, override `app-template.controllers.claude-code-openai-wrapper.containers.app.image.repository` in a values file.
+- Kubernetes 1.27+, Helm 3.13+, a `StorageClass` supporting `ReadWriteOnce`.
+- The wrapper image lives at `ghcr.io/brandonros/claude-code-openai-wrapper`, published by [`docker.yml`](https://github.com/brandonros/claude-code-openai-wrapper/blob/main/.github/workflows/docker.yml) in the fork. If you use a different fork, override `app-template.controllers.claude-code-openai-wrapper.containers.app.image.repository`.
 
-> **Note:** the wrapper chart overrides the upstream Dockerfile's `CMD` to drop `--reload` (upstream ships a dev-mode CMD). Once the fork's Dockerfile is patched you can delete the `command:` override in [`claude-code-openai-wrapper/values.yaml`](claude-code-openai-wrapper/values.yaml).
-
-## First-time install
+## Install
 
 ```bash
-# Fetch the app-template subchart for both umbrella charts.
-helm dependency update deploy/helm/open-webui
-helm dependency update deploy/helm/claude-code-openai-wrapper
+helm dependency update open-webui
+helm dependency update claude-code-openai-wrapper
 
-# Create the namespace and the wrapper's secrets.
 kubectl create namespace claude-in-a-box
 
 kubectl -n claude-in-a-box create secret generic claude-code-openai-wrapper-secrets \
-  --from-literal=ANTHROPIC_API_KEY='sk-ant-...' \
-  --from-literal=API_KEY="$(openssl rand -hex 32)"   # wrapper's own auth
+  --from-literal=ANTHROPIC_API_KEY='sk-ant-...'
 
-# Install the wrapper first so Open WebUI has something to talk to.
-# Pin to a specific submodule SHA with e.g. `--set ...image.tag=wrapper-abc1234`
-# instead of the floating `latest` default; tags are produced by the publish
-# workflow.
-helm upgrade --install claude-code-openai-wrapper deploy/helm/claude-code-openai-wrapper \
-  -n claude-in-a-box
-
-helm upgrade --install open-webui deploy/helm/open-webui \
-  -n claude-in-a-box
+helm upgrade --install claude-code-openai-wrapper ./claude-code-openai-wrapper -n claude-in-a-box
+helm upgrade --install open-webui                  ./open-webui                 -n claude-in-a-box
 ```
 
-The default Open WebUI values already point at `http://claude-code-openai-wrapper:8000/v1`, which matches the default Service name of the wrapper chart when both are released with the names shown above. If you change the wrapper release name, override `OPENAI_API_BASE_URLS` in `open-webui/values.yaml`.
+Open WebUI's values default to `http://claude-code-openai-wrapper:8000/v1`, which matches the Service the wrapper chart creates in the same namespace. Changing the wrapper release name means overriding `OPENAI_API_BASE_URLS` in `open-webui/values.yaml`.
 
-## Exposing the UI
+Pin a specific wrapper image with `--set 'app-template.controllers.claude-code-openai-wrapper.containers.app.image.tag=sha-<abbrev>'` — tags are produced by `docker/metadata-action` in the publish workflow.
 
-Ingress is off by default. Turn it on with a values override file:
+## Ingress
 
-```yaml
-# openwebui-ingress.values.yaml
-app-template:
-  ingress:
-    app:
-      enabled: true
-      className: nginx
-      hosts:
-        - host: openwebui.internal.corp
-          paths:
-            - path: /
-              pathType: Prefix
-              service:
-                identifier: app
-                port: http
-      tls:
-        - hosts: [openwebui.internal.corp]
-          secretName: openwebui-tls
-```
+Off by default. Flip `ingress.app.enabled: true` under `app-template:` in [`open-webui/values.yaml`](open-webui/values.yaml) (or a values-override file) and fill in `hosts` / `tls`. Pattern is the [app-template ingress schema](https://bjw-s-labs.github.io/helm-charts/docs/app-template/).
+
+## Skills, CLAUDE.md, .mcp.json
+
+[`claude-code-openai-wrapper/values.yaml`](claude-code-openai-wrapper/values.yaml) has three disabled `persistence.*` entries pre-wired to ConfigMaps. Create them, then flip `enabled: true`:
 
 ```bash
-helm upgrade --install open-webui deploy/helm/open-webui \
-  -n claude-in-a-box \
-  -f deploy/helm/open-webui/values.yaml \
-  -f openwebui-ingress.values.yaml
+kubectl -n claude-in-a-box create configmap claude-md        --from-file=CLAUDE.md=./path/to/CLAUDE.md
+kubectl -n claude-in-a-box create configmap claude-skills    --from-file=./path/to/skills/
+kubectl -n claude-in-a-box create configmap claude-mcp-config --from-file=.mcp.json=./path/to/.mcp.json
 ```
-
-## Mounting skills, CLAUDE.md, .mcp.json
-
-The wrapper values file has three disabled `persistence.*` entries (`claude-md`, `skills`, `mcp-config`) wired to ConfigMaps. Create the ConfigMaps from your config repo and flip `enabled: true`:
-
-```bash
-kubectl -n claude-in-a-box create configmap claude-md \
-  --from-file=CLAUDE.md=./path/to/CLAUDE.md
-
-kubectl -n claude-in-a-box create configmap claude-skills \
-  --from-file=./path/to/skills/
-
-kubectl -n claude-in-a-box create configmap claude-mcp-config \
-  --from-file=.mcp.json=./path/to/.mcp.json
-```
-
-## Upgrading the app-template subchart
-
-```bash
-# Bump the version in Chart.yaml, then:
-helm dependency update deploy/helm/open-webui
-helm dependency update deploy/helm/claude-code-openai-wrapper
-```
-
-Check the [app-template changelog](https://github.com/bjw-s-labs/helm-charts/releases?q=app-template) for breaking schema changes before bumping a major.
 
 ## Uninstall
 
 ```bash
 helm -n claude-in-a-box uninstall open-webui claude-code-openai-wrapper
-# Open WebUI's PVC is retained by default — delete manually if you want the chat history gone.
-kubectl -n claude-in-a-box delete pvc -l app.kubernetes.io/instance=open-webui
+kubectl -n claude-in-a-box delete pvc -l app.kubernetes.io/instance=open-webui   # chat history
 ```

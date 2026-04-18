@@ -18,9 +18,10 @@ app-template:
           # it for production pods.
           command: ["poetry", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
           env:
-            PORT: "8000"
-            HOST: "0.0.0.0"
             CLAUDE_AUTH_METHOD: "api_key"
+            # Agent's working directory for clones, builds, scratch files.
+            # Backed by the persistence.workspace volume below.
+            CLAUDE_CWD: "/workspace"
           envFrom:
             - secretRef:
                 name: claude-code-openai-wrapper-secrets
@@ -78,8 +79,20 @@ app-template:
       enabled: false
 
   persistence:
-    # Scratch space for the agent. emptyDir keeps it node-local and ephemeral
-    # so a runaway session can't fill the node filesystem.
+    # Agent's workspace: where Claude Code clones repos, runs builds, writes
+    # scratch files. Ephemeral by default — override `type` to
+    # `persistentVolumeClaim` with an `accessMode` + `size` if you want the
+    # agent to remember prior clones / build caches across restarts.
+    workspace:
+      enabled: true
+      type: emptyDir
+      sizeLimit: 5Gi
+      # type: persistentVolumeClaim
+      # accessMode: ReadWriteOnce
+      # size: 50Gi
+      globalMounts:
+        - path: /workspace
+    # Separate /tmp for Python tempfile, uvicorn request scratch, etc.
     tmp:
       enabled: true
       type: emptyDir
