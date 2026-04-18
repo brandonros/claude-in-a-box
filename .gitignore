@@ -1,0 +1,5 @@
+# Helm: vendored subchart tarballs (regenerate with `helm dependency build`)
+**/charts/*.tgz
+
+# macOS
+.DS_Store

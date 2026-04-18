@@ -1,0 +1,112 @@
+app-template:
+  controllers:
+    claude-code-openai-wrapper:
+      type: deployment
+      replicas: 1
+      containers:
+        app:
+          # Built and published by .github/workflows/docker.yml in this repo.
+          # Override `tag` to pin a specific wrapper submodule SHA
+          # (e.g. `wrapper-abc1234`) instead of the floating `latest`.
+          image:
+            repository: ghcr.io/brandonros/claude-in-a-box/claude-code-openai-wrapper
+            tag: latest
+            pullPolicy: IfNotPresent
+          # Upstream Dockerfile's CMD runs uvicorn with --reload for dev; strip
+          # it for production pods.
+          command: ["poetry", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+          env:
+            PORT: "8000"
+            HOST: "0.0.0.0"
+            CLAUDE_AUTH_METHOD: "api_key"
+          envFrom:
+            - secretRef:
+                name: claude-code-openai-wrapper-secrets
+          probes:
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /health
+                  port: 8000
+                initialDelaySeconds: 20
+                periodSeconds: 10
+                # Slow Claude calls shouldn't trip liveness mid-request.
+                timeoutSeconds: 5
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /health
+                  port: 8000
+                initialDelaySeconds: 5
+                periodSeconds: 5
+                timeoutSeconds: 3
+            startup:
+              enabled: true
+              custom: true
+              spec:
+                httpGet:
+                  path: /health
+                  port: 8000
+                failureThreshold: 30
+                periodSeconds: 5
+          # Each request spawns a Claude agent subprocess; size for
+          # concurrency. Anthropic suggests ~1 CPU / 1Gi RAM per SDK instance
+          # as a floor — bump limits if you see OOMKills.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 4Gi
+
+  service:
+    app:
+      controller: claude-code-openai-wrapper
+      ports:
+        http:
+          port: 8000
+
+  # Not exposed publicly by default — Open WebUI reaches it via ClusterIP.
+  ingress:
+    app:
+      enabled: false
+
+  persistence:
+    # Scratch space for the agent. emptyDir keeps it node-local and ephemeral
+    # so a runaway session can't fill the node filesystem.
+    tmp:
+      enabled: true
+      type: emptyDir
+      sizeLimit: 2Gi
+      globalMounts:
+        - path: /tmp
+    # Mount your CLAUDE.md, skills, and .mcp.json from ConfigMaps created
+    # out-of-band (or templated into this chart later). Enable by flipping
+    # `enabled: true` and creating the matching ConfigMap.
+    claude-md:
+      enabled: false
+      type: configMap
+      name: claude-md
+      globalMounts:
+        - path: /workspace/CLAUDE.md
+          subPath: CLAUDE.md
+          readOnly: true
+    skills:
+      enabled: false
+      type: configMap
+      name: claude-skills
+      globalMounts:
+        - path: /root/.claude/skills
+          readOnly: true
+    mcp-config:
+      enabled: false
+      type: configMap
+      name: claude-mcp-config
+      globalMounts:
+        - path: /root/.claude/.mcp.json
+          subPath: .mcp.json
+          readOnly: true

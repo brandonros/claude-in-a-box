@@ -1,0 +1,58 @@
+name: Build and push wrapper image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Only fetch the wrapper submodule; open-webui is upstream-published and
+      # doesn't need to be on disk to build our image.
+      - name: Checkout wrapper submodule
+        run: git submodule update --init --recursive claude-code-openai-wrapper
+
+      - name: Read wrapper submodule SHA
+        id: wrapper
+        run: echo "short=$(git -C claude-code-openai-wrapper rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/claude-code-openai-wrapper
+          tags: |
+            type=raw,value=latest
+            type=raw,value=wrapper-${{ steps.wrapper.outputs.short }}
+            type=sha,prefix=monorepo-
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./claude-code-openai-wrapper
+          file: ./claude-code-openai-wrapper/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

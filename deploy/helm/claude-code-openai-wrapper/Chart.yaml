@@ -1,0 +1,10 @@
+apiVersion: v2
+name: claude-code-openai-wrapper
+description: claude-code-openai-wrapper rendered via bjw-s app-template
+type: application
+version: 0.1.0
+appVersion: "2.2.0"
+dependencies:
+  - name: app-template
+    version: 4.6.2
+    repository: https://bjw-s-labs.github.io/helm-charts
