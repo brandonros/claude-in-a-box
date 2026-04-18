@@ -1,0 +1,6 @@
+[submodule "open-webui"]
+	path = open-webui
+	url = git@github.com:open-webui/open-webui.git
+[submodule "claude-code-openai-wrapper"]
+	path = claude-code-openai-wrapper
+	url = git@github.com:RichardAtCT/claude-code-openai-wrapper.git
