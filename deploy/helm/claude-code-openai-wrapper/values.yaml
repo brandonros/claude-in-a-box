@@ -30,6 +30,10 @@ app-template:
             # Wrapper's default is 10 chat completions/min per IP — fine for
             # a shared server, too aggressive for single-user self-hosted.
             RATE_LIMIT_ENABLED: "false"
+            # Override the wrapper's curated /v1/models list without a fork
+            # edit + image rebuild. Comma-separated slugs; empty = use the
+            # built-in DEFAULT_CLAUDE_MODELS from constants.py.
+            # CLAUDE_MODELS_OVERRIDE: "claude-opus-4-7,claude-sonnet-4-6,claude-haiku-4-5-20251001"
           envFrom:
             - secretRef:
                 name: claude-code-openai-wrapper-secrets

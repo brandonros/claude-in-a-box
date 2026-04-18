@@ -45,6 +45,20 @@ kubectl -n claude-in-a-box create configmap claude-skills    --from-file=./path/
 kubectl -n claude-in-a-box create configmap claude-mcp-config --from-file=.mcp.json=./path/to/.mcp.json
 ```
 
+## Updating the model list
+
+Open WebUI's model dropdown reflects what the wrapper's `/v1/models` endpoint returns, which is a **curated list** in the fork — not proxied from OpenRouter/Anthropic.
+
+**Fast path** (no fork edits): set `CLAUDE_MODELS_OVERRIDE` in the wrapper's env to a comma-separated slug list and restart the pod. There's a commented-out example in [values.yaml](claude-code-openai-wrapper/values.yaml).
+
+**Permanent path** (updates the default for everyone): edit `DEFAULT_CLAUDE_MODELS` in [`src/constants.py`](https://github.com/brandonros/claude-code-openai-wrapper/blob/main/src/constants.py) in the fork, push to `main`, let [`docker.yml`](https://github.com/brandonros/claude-code-openai-wrapper/blob/main/.github/workflows/docker.yml) rebuild, then:
+
+```bash
+kubectl -n claude-in-a-box rollout restart deploy/claude-code-openai-wrapper
+```
+
+First entry in the list becomes Open WebUI's default, so order it best-first.
+
 ## Uninstall
 
 ```bash
