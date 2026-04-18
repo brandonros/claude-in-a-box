@@ -22,6 +22,11 @@ app-template:
             # Agent's working directory for clones, builds, scratch files.
             # Backed by the persistence.workspace volume below.
             CLAUDE_CWD: "/workspace"
+            # Route the Anthropic SDK through OpenRouter. Unset this (or set to
+            # https://api.anthropic.com) to go direct to Anthropic; in that
+            # case the secret's ANTHROPIC_API_KEY must be an Anthropic key
+            # instead of an OpenRouter one.
+            ANTHROPIC_BASE_URL: "https://openrouter.ai/api"
           envFrom:
             - secretRef:
                 name: claude-code-openai-wrapper-secrets

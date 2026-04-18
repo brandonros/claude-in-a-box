@@ -19,13 +19,15 @@ helm dependency update claude-code-openai-wrapper
 kubectl create namespace claude-in-a-box
 
 kubectl -n claude-in-a-box create secret generic claude-code-openai-wrapper-secrets \
-  --from-literal=ANTHROPIC_API_KEY='sk-ant-...'
+  --from-literal=ANTHROPIC_API_KEY='sk-or-v1-...'   # OpenRouter key by default
 
 helm upgrade --install claude-code-openai-wrapper ./claude-code-openai-wrapper -n claude-in-a-box
 helm upgrade --install open-webui                  ./open-webui                 -n claude-in-a-box
 ```
 
 Open WebUI's values default to `http://claude-code-openai-wrapper:8000/v1`, which matches the Service the wrapper chart creates in the same namespace. Changing the wrapper release name means overriding `OPENAI_API_BASE_URLS` in `open-webui/values.yaml`.
+
+The wrapper chart defaults `ANTHROPIC_BASE_URL` to `https://openrouter.ai/api`, so the `ANTHROPIC_API_KEY` above should be your OpenRouter key (`sk-or-v1-...`). To go direct to Anthropic instead, override that env var to `https://api.anthropic.com` and put an Anthropic key in the secret.
 
 Pin a specific wrapper image with `--set 'app-template.controllers.claude-code-openai-wrapper.containers.app.image.tag=sha-<abbrev>'` — tags are produced by `docker/metadata-action` in the publish workflow.
 
